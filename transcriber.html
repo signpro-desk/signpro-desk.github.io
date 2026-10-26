@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hearing Transcriber</title>
+<meta name="description" content="Private transcription of court hearing recordings in English and Urdu. Audio stays on your computer.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230B5CFF'/><path d='M10 9v14M16 6v20M22 11v10' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#FFFFFF; --soft:#F8F9FA; --card:#FFFFFF; --ink:#00053D; --muted:#4A5068; --line:#E4E7EE;
+  --blue:#0B5CFF; --blue-deep:#0846CC; --blue-ink:#FFFFFF; --blue-soft:#EEF4FF; --navy:#00053D;
+  --hi:#FFF6CC; --ok:#16794A; --warn:#9A5B00;
+  --sans:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --serif:"Source Serif 4", Georgia, "Noto Nastaliq Urdu", serif;
+  --urdu:"Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Segoe UI", serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--bg)}
+.top .in{max-width:1240px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+.brand svg{width:30px;height:30px}
+.nav{display:flex;gap:22px;margin-left:12px}
+.nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:15px}
+.nav a:hover{color:var(--ink)}
+.private{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.private i{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+@media (max-width:720px){.nav{display:none}.private span{display:none}}
+
+/* hero */
+.hero{background:linear-gradient(180deg,var(--blue-soft),var(--bg));border-bottom:1px solid var(--line)}
+.hero .in{max-width:1240px;margin:0 auto;padding:56px 24px 48px;display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
+.hero h1{font-size:clamp(34px,4.6vw,54px);line-height:1.06;letter-spacing:-.025em;margin:0 0 16px;font-weight:800;max-width:14ch}
+.hero p{font-size:18px;color:var(--muted);margin:0 0 8px;max-width:46ch}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:var(--card);border:2px dashed var(--line);border-radius:20px;padding:40px 28px;cursor:pointer;min-height:240px;transition:border-color .15s}
+.drop:hover,.drop.over{border-color:var(--blue)}
+.drop .pill{pointer-events:none;color:var(--blue-ink);font-size:16px}
+.drop strong{font-size:18px;font-weight:700;overflow-wrap:anywhere}
+.drop span{color:var(--muted);font-size:14.5px}
+@media (max-width:860px){.hero .in{grid-template-columns:1fr;gap:28px;padding:36px 20px}}
+
+.pill:hover:not(:disabled){background:var(--blue-deep)}
+.pill.ghost:hover:not(:disabled){background:var(--blue-soft)}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 24px;font-weight:700;font-size:16px;border:1.5px solid transparent;cursor:pointer;background:var(--blue);color:var(--blue-ink)}
+.pill.ghost{background:transparent;color:var(--blue);border-color:var(--blue)}
+.pill.sm{padding:7px 16px;font-size:14px;font-weight:600}
+.pill:disabled{opacity:.45;cursor:not-allowed}
+
+/* workspace */
+.work{max-width:1240px;margin:0 auto;padding:36px 24px 56px;display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
+@media (max-width:960px){.work{grid-template-columns:1fr;padding:24px 16px 40px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.settings{padding:22px;position:sticky;top:76px}
+@media (max-width:960px){.settings{position:static}}
+.settings h2,.doc h2{font-size:18px;font-weight:700;margin:0 0 16px;letter-spacing:-.01em}
+fieldset{border:0;padding:0;margin:0 0 18px}
+legend{font-weight:600;font-size:14px;margin-bottom:8px}
+label.f{display:block;font-size:13.5px;color:var(--muted);margin:0 0 4px}
+.field{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);margin-bottom:12px}
+.seg{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:4px}
+.seg label{flex:1;text-align:center;padding:7px 6px;border-radius:999px;cursor:pointer;font-size:14px;font-weight:500;color:var(--muted)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(20,23,28,.12)}
+.seg label:has(input:focus-visible){outline:2px solid var(--blue)}
+.hint{font-size:13px;color:var(--muted);margin:8px 2px 0}
+#go{width:100%;margin-top:4px}
+.status{margin-top:16px;font-size:14px}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.dev{font-size:13px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.dev b{color:var(--ok);font-weight:600}
+.dev b.slow{color:var(--warn)}
+
+.doc{min-width:0;overflow:hidden}
+.bar2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--soft)}
+.bar2 audio{flex:1 1 260px;height:40px;min-width:220px}
+.dochead{padding:22px 28px 16px;border-bottom:1px solid var(--line)}
+.dochead h2{margin:0;font-size:22px}
+.dochead p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.row{display:grid;grid-template-columns:96px 1fr;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.row:last-child{border-bottom:0}
+.row.now{background:var(--hi)}
+.ts{background:none;border:0;padding:14px 10px 0 0;text-align:right;color:var(--blue);font:600 13px/1.6 var(--sans);font-variant-numeric:tabular-nums;cursor:pointer}
+.ts:hover{text-decoration:underline}
+.body{padding:10px 28px 10px 14px}
+.spk{border:0;background:var(--blue-soft);border-radius:999px;font:600 12.5px var(--sans);color:var(--blue);padding:3px 12px;width:200px;max-width:100%}
+.spk::placeholder{color:var(--muted);font-weight:500}
+.txt{font:17px/1.7 var(--serif);outline:none;padding:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.txt.ur{font-family:var(--urdu);font-size:19px;line-height:2.3}
+.txt:focus{box-shadow:inset 0 -2px 0 var(--blue)}
+.empty{padding:64px 28px;color:var(--muted);text-align:center;max-width:520px;margin:0 auto}
+.note{font-size:13px;color:var(--muted);margin:12px 4px 0}
+@media (max-width:600px){.row{grid-template-columns:72px 1fr}.body{padding:10px 14px 10px 8px}.dochead{padding:18px}}
+
+/* how it works */
+.how{background:var(--navy);color:#FFFFFF}
+.how h2{color:#FFFFFF}
+.steps li{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.14)!important}
+.steps span{color:#C9CEE6!important}
+.how .in{max-width:1240px;margin:0 auto;padding:48px 24px 56px}
+.how h2{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 24px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;list-style:none;padding:0;margin:0;counter-reset:s}
+.steps li{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;counter-increment:s}
+.steps li::before{content:counter(s);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:var(--blue-ink);font-weight:800;margin-bottom:12px}
+.steps b{display:block;margin-bottom:4px}
+.steps span{color:var(--muted);font-size:14.5px}
+@media (max-width:860px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.steps{grid-template-columns:1fr}}
+footer{max-width:1240px;margin:0 auto;padding:20px 24px 32px;color:var(--muted);font-size:13px}
+
+/* hero art: animated waveform behind the upload card */
+.stage{position:relative}
+.stage .wave{position:absolute;inset:-28px -20px;display:flex;align-items:center;justify-content:center;gap:7px;z-index:0;opacity:.55;pointer-events:none}
+.stage .wave i{width:7px;border-radius:4px;background:linear-gradient(var(--blue),#7FA8FF);animation:wv 1.6s ease-in-out infinite;height:30%}
+@keyframes wv{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+.stage .drop{position:relative;z-index:1;box-shadow:0 18px 50px rgba(0,5,61,.14)}
+.blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.5;pointer-events:none;z-index:0}
+.hero{position:relative;overflow:hidden}
+.hero .in{position:relative;z-index:1}
+
+/* picture cards strip */
+.gallery{background:var(--bg);border-bottom:1px solid var(--line);overflow:hidden;padding:36px 0 40px}
+.gallery h2{max-width:1240px;margin:0 auto 20px;padding:0 24px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.track{display:flex;gap:18px;width:max-content;animation:slide 48s linear infinite;padding:0 24px}
+.gallery:hover .track{animation-play-state:paused}
+@keyframes slide{to{transform:translateX(-50%)}}
+.tile{width:260px;flex:none}
+.tile .pic{height:190px;border-radius:18px;overflow:hidden;display:block}
+.tile .pic svg{width:100%;height:100%;display:block}
+.tile b{display:block;margin:12px 4px 2px;font-size:16px}
+.tile span{display:block;margin:0 4px;color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion: reduce){.track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}.stage .wave i{animation:none}}
+@media (prefers-reduced-motion: reduce){.bar i,.drop{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="#">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--blue)"/><path d="M10 9v14M16 6v20M22 11v10" stroke="var(--blue-ink)" stroke-width="3" stroke-linecap="round"/></svg>
+    Hearing Transcriber
+  </a>
+  <nav class="nav"><a href="#workspace">Workspace</a><a href="#how">How it works</a></nav>
+  <div class="private"><i></i><span>Audio stays on this computer</span></div>
+</div></header>
+
+<section class="hero"><span class="blob" style="width:420px;height:420px;background:#7FA8FF;right:-80px;top:-120px"></span><span class="blob" style="width:300px;height:300px;background:#B9D0FF;left:-90px;bottom:-140px"></span><div class="in">
+  <div>
+    <h1>Turn hearing recordings into transcripts</h1>
+    <p>Upload a court or tribunal recording in English or Urdu. Get a timestamped transcript you can edit, label by speaker, and export to Word.</p>
+    <p>No sign-up, no minute limits. Recordings are processed on your own computer and never uploaded.</p>
+  </div>
+  <div class="stage"><div class="wave" aria-hidden="true" id="wave"></div>
+  <label class="drop" id="drop">
+    <input type="file" id="file" hidden>
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+    <strong id="fname">Drop a recording here</strong>
+    <span id="fmeta">MP3, WAV, M4A or MP4, including multi-hour hearings</span>
+    <span class="pill" aria-hidden="true">Choose recording</span>
+  </label></div>
+</div></section>
+
+<section class="gallery" aria-label="What it does"><h2>Built for legal recordings</h2><div class="track"><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#00053D"/><circle cx="210" cy="40" r="70" fill="#0B5CFF" opacity=".35"/><rect x="40" y="70" width="180" height="16" rx="3" fill="#2B3A8C"/><rect x="50" y="86" width="160" height="70" fill="#1B2A7A"/><g fill="#3B4FB0"><rect x="64" y="96" width="10" height="50"/><rect x="94" y="96" width="10" height="50"/><rect x="124" y="96" width="10" height="50"/><rect x="154" y="96" width="10" height="50"/><rect x="184" y="96" width="10" height="50"/></g><path d="M40 70 130 34 220 70z" fill="#0B5CFF"/><g transform="translate(176 120) rotate(-30)"><rect x="-22" y="-8" width="44" height="16" rx="4" fill="#FFFFFF"/><rect x="-3" y="8" width="6" height="34" rx="3" fill="#C9D8FF"/></g><rect x="30" y="156" width="200" height="8" rx="4" fill="#2B3A8C"/></svg></span><b>Court hearings</b><span>Federal Court, IRB and tribunal recordings.</span></div><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#EEF4FF"/><circle cx="40" cy="170" r="70" fill="#C9D8FF"/><rect x="28" y="34" width="120" height="70" rx="18" fill="#0B5CFF"/><path d="M52 104l-6 22 26-22z" fill="#0B5CFF"/><text x="88" y="82" font-family="Georgia,serif" font-size="40" fill="#FFFFFF" text-anchor="middle">Aa</text><rect x="112" y="92" width="122" height="70" rx="18" fill="#00053D"/><path d="M210 162l6 20-26-20z" fill="#00053D"/><text x="173" y="140" font-family="'Noto Nastaliq Urdu',serif" font-size="30" fill="#FFFFFF" text-anchor="middle">اردو</text></svg></span><b>English and Urdu</b><span>Transcribe as spoken, or turn Urdu into English.</span></div><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#0B5CFF"/><circle cx="230" cy="20" r="80" fill="#4D86FF"/><rect x="34" y="26" width="192" height="150" rx="12" fill="#FFFFFF"/><g font-family="Figtree,Arial,sans-serif" font-size="11" font-weight="700" fill="#0B5CFF"><text x="48" y="56">00:00:12</text><text x="48" y="90">00:00:31</text><text x="48" y="124">00:01:05</text><text x="48" y="158">00:01:40</text></g><g fill="#D5DEF0"><rect x="108" y="48" width="104" height="9" rx="4"/><rect x="108" y="82" width="86" height="9" rx="4"/><rect x="108" y="150" width="96" height="9" rx="4"/></g><rect x="40" y="110" width="180" height="24" rx="6" fill="#FFF6CC"/><text x="48" y="126" font-family="Figtree,Arial,sans-serif" font-size="11" font-weight="700" fill="#0B5CFF">00:01:05</text><rect x="108" y="116" width="100" height="9" rx="4" fill="#E8C95A"/></svg></span><b>Timestamped lines</b><span>Click any time to replay that moment.</span></div><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#F8F9FA"/><circle cx="220" cy="160" r="70" fill="#EEF4FF"/><g font-family="Figtree,Arial,sans-serif" font-size="13" font-weight="700"><rect x="30" y="34" width="96" height="30" rx="15" fill="#0B5CFF"/><text x="78" y="54" fill="#FFFFFF" text-anchor="middle">JUDGE</text><rect x="70" y="80" width="150" height="30" rx="15" fill="#00053D"/><text x="145" y="100" fill="#FFFFFF" text-anchor="middle">COUNSEL</text><rect x="30" y="126" width="124" height="30" rx="15" fill="#FFFFFF" stroke="#0B5CFF" stroke-width="2"/><text x="92" y="146" fill="#0B5CFF" text-anchor="middle">APPLICANT</text></g><g fill="#C9D8FF"><circle cx="190" cy="49" r="14"/><circle cx="196" cy="141" r="14"/></g></svg></span><b>Speaker labels</b><span>Mark the Judge, counsel and witnesses.</span></div><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#00053D"/><circle cx="40" cy="30" r="70" fill="#0B5CFF" opacity=".4"/><path d="M84 26h70l32 32v106a8 8 0 0 1-8 8H84a8 8 0 0 1-8-8V34a8 8 0 0 1 8-8z" fill="#FFFFFF"/><path d="M154 26v32h32" fill="#C9D8FF"/><g fill="#D5DEF0"><rect x="92" y="76" width="78" height="7" rx="3"/><rect x="92" y="92" width="66" height="7" rx="3"/><rect x="92" y="108" width="74" height="7" rx="3"/><rect x="92" y="124" width="54" height="7" rx="3"/></g><rect x="150" y="122" width="58" height="46" rx="10" fill="#0B5CFF"/><text x="179" y="153" font-family="Figtree,Arial,sans-serif" font-size="22" font-weight="800" fill="#FFFFFF" text-anchor="middle">W</text></svg></span><b>Export to Word</b><span>Calibri 11 transcript with case details on top.</span></div><div class="tile"><span class="pic"><svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg"><rect width="260" height="190" fill="#EEF4FF"/><circle cx="210" cy="40" r="60" fill="#C9D8FF"/><rect x="58" y="44" width="144" height="96" rx="10" fill="#00053D"/><rect x="66" y="52" width="128" height="80" rx="4" fill="#0B5CFF"/><rect x="40" y="140" width="180" height="12" rx="6" fill="#00053D"/><path d="M130 66l26 10v18c0 16-12 26-26 30-14-4-26-14-26-30V76z" fill="#FFFFFF"/><path d="M119 94l8 8 16-16" stroke="#0B5CFF" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Private by design</b><span>Audio is processed on your own computer.</span></div></div></section>
+<div class="work" id="workspace">
+  <aside class="card settings">
+    <h2>Settings</h2>
+    <fieldset>
+      <legend>Case details</legend>
+      <label class="f" for="case">Case name</label>
+      <input class="field" id="case" placeholder="e.g. Khan v. Canada (MCI)">
+      <label class="f" for="fileno">Court file number</label>
+      <input class="field" id="fileno" placeholder="e.g. IMM-1234-26">
+      <label class="f" for="hdate">Hearing date</label>
+      <input class="field" id="hdate" type="date">
+    </fieldset>
+    <fieldset>
+      <legend>Spoken language</legend>
+      <div class="seg">
+        <label><input type="radio" name="lang" value="english" checked><span>English</span></label>
+        <label><input type="radio" name="lang" value="urdu"><span>Urdu</span></label>
+        <label><input type="radio" name="lang" value="auto"><span>Mixed</span></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Output</legend>
+      <div class="seg">
+        <label><input type="radio" name="task" value="transcribe" checked><span>As spoken</span></label>
+        <label><input type="radio" name="task" value="translate"><span>In English</span></label>
+      </div>
+      <p class="hint">“In English” turns Urdu speech into English text.</p>
+    </fieldset>
+    <fieldset>
+      <legend>Quality</legend>
+      <div class="seg">
+        <label><input type="radio" name="q" value="base"><span>Fast</span></label>
+        <label><input type="radio" name="q" value="small" checked><span>Balanced</span></label>
+        <label><input type="radio" name="q" value="turbo"><span>Best</span></label>
+      </div>
+      <p class="hint" id="qhint"></p>
+    </fieldset>
+    <button class="pill" id="go" disabled>Start transcribing</button>
+    <div class="status" aria-live="polite">
+      <div class="bar"><i id="barfill"></i></div>
+      <div id="stat">Choose a recording to begin.</div>
+    </div>
+    <div class="dev" id="dev">Checking this computer…</div>
+  </aside>
+
+  <section>
+    <div class="card doc">
+      <div class="bar2">
+        <audio id="player" controls preload="metadata"></audio>
+        <button class="pill sm" id="exDoc" disabled>Export Word</button>
+        <button class="pill sm ghost" id="exTxt" disabled>Text</button>
+        <button class="pill sm ghost" id="exSrt" disabled>Subtitles</button>
+        <button class="pill sm ghost" id="copy" disabled>Copy</button>
+        <button class="pill sm ghost" id="clear" disabled>Clear</button>
+      </div>
+      <div class="dochead"><h2 id="hTitle">Transcript of proceedings</h2><p id="hMeta">Case details appear here.</p></div>
+      <div id="rows"><p class="empty" id="empty">Your transcript appears here, line by line, while the recording is processed. Click a time to replay that moment, add a speaker to any line, and edit the text directly.</p></div>
+    </div>
+    <p class="note">Machine transcription makes mistakes, especially with names, case citations and cross-talk. Check it against the recording before relying on it or filing it.</p>
+  </section>
+</div>
+
+<section class="how" id="how"><div class="in">
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><b>Add the recording</b><span>Drop in the hearing audio or video. Long recordings are read in pieces.</span></li>
+    <li><b>Pick the language</b><span>English, Urdu, or Mixed. Choose Best quality for Urdu.</span></li>
+    <li><b>Transcribe</b><span>Lines appear as it works. Stop anytime and continue later.</span></li>
+    <li><b>Review and export</b><span>Add speakers, fix names and citations, then export to Word.</span></li>
+  </ol>
+</div></section>
+<footer>The first transcription downloads a speech model once (150 MB to 1 GB). Works best in Chrome or Edge on a computer with a graphics card.</footer>
+
+<datalist id="speakers"><option value="Judge"><option value="Member"><option value="Counsel for the Applicant"><option value="Counsel for the Respondent"><option value="Minister’s Counsel"><option value="Applicant"><option value="Interpreter"></datalist>
+<script>
+setTimeout(function(){ if(!window.__appReady){ var el=document.getElementById("stat"); if(el) el.textContent="The app did not start. Check your internet connection, then reload the page."; } }, 6000);
+</script>
+<script>
+(function(){var t=document.querySelector(".track");if(t){var c=t.innerHTML;var d=document.createElement("div");d.setAttribute("aria-hidden","true");d.style.display="contents";d.innerHTML=c;t.appendChild(d);}var w=document.getElementById("wave");if(!w)return;for(var i=0;i<46;i++){var b=document.createElement("i");b.style.height=(25+Math.round(Math.abs(Math.sin(i*.55))*60+Math.random()*15))+"%";b.style.animationDelay=(-(i*0.09)%1.6).toFixed(2)+"s";w.appendChild(b);}})();
+</script>
+<script type="module">
+const TF_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6";
+let TF = null;
+async function tf(){
+  if (TF) return TF;
+  try { TF = await import(TF_URL); }
+  catch (e) { throw new Error("the speech engine could not be downloaded. Check your internet connection and reload the page"); }
+  TF.env.allowLocalModels = false;
+  return TF;
+}
+window.__appReady = true;
+window.addEventListener("error", e => stat("Something went wrong: " + (e.message || "unknown error") + ". Reload the page and try again."));
+window.addEventListener("unhandledrejection", e => stat("Something went wrong: " + (e.reason?.message || e.reason || "unknown error") + ". Reload the page and try again."));
+
+const MODELS = {
+  base:  { id:"onnx-community/whisper-base",  size:"about 150 MB", note:"Quick drafts. Weak on Urdu." },
+  small: { id:"onnx-community/whisper-small", size:"about 300 MB", note:"Good for clear English and Urdu." },
+  turbo: { id:"onnx-community/whisper-large-v3-turbo", size:"about 1 GB", note:"Most accurate, especially Urdu. Needs a graphics card." }
+};
+const SR = 16000;
+const $ = id => document.getElementById(id);
+const S = { file:null, audio:null, url:null, segs:[], pos:0, running:false, stop:false, gpu:false, f16:false, pipe:null, pipeKey:"" };
+const KEY = "hearing-transcriber-session";
+
+/* ---------- device ---------- */
+(async () => {
+  try {
+    if (navigator.gpu) {
+      const a = await navigator.gpu.requestAdapter();
+      if (a) { S.gpu = true; S.f16 = a.features.has("shader-f16"); }
+    }
+  } catch {}
+  $("dev").innerHTML = S.gpu
+    ? "Graphics card: <b>available</b>. Transcription will be fast."
+    : "Graphics card: <b class='slow'>not available</b>. Transcription will use the processor and run slower. Use Chrome or Edge for the best speed.";
+  qHint();
+})();
+function q(){ return document.querySelector("input[name=q]:checked").value; }
+function qHint(){
+  const m = MODELS[q()];
+  let t = `${m.note} One-time download of ${m.size}.`;
+  if (q()==="turbo" && !S.gpu) t += " Without a graphics card this will be very slow.";
+  if (q()==="turbo" && task()==="translate") t += " Best quality is weak at translation; switch to Balanced.";
+  $("qhint").textContent = t;
+}
+const lang = () => document.querySelector("input[name=lang]:checked").value;
+const task = () => document.querySelector("input[name=task]:checked").value;
+document.querySelectorAll("input[name=q],input[name=task]").forEach(r => r.addEventListener("change", qHint));
+
+/* ---------- case header ---------- */
+function header(){
+  const c = $("case").value.trim(), n = $("fileno").value.trim(), d = $("hdate").value;
+  $("hTitle").textContent = c || "Transcript of proceedings";
+  const parts = [];
+  if (n) parts.push(`Court file ${n}`);
+  if (d) parts.push(`Hearing of ${fmtDate(d)}`);
+  if (S.file) parts.push(S.file.name);
+  $("hMeta").textContent = parts.join(", ") || "Case details appear here.";
+  save();
+}
+function fmtDate(d){ try { return new Date(d+"T12:00").toLocaleDateString("en-CA",{year:"numeric",month:"long",day:"numeric"}); } catch { return d; } }
+["case","fileno","hdate"].forEach(id => $(id).addEventListener("input", header));
+
+/* ---------- file ---------- */
+const drop = $("drop");
+$("file").addEventListener("change", e => e.target.files[0] && pick(e.target.files[0]));
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); e.dataTransfer.files[0] && pick(e.dataTransfer.files[0]); });
+
+async function pick(f){
+  if (S.running) return;
+  const resume = S.restoredFile && f.name === S.restoredFile && S.segs.length;
+  if (!resume && S.segs.length && !confirm("Start a new transcript? The current one will be cleared. Export it first if you need it.")) return;
+  S.file = f; S.audio = null;
+  if (resume) { S.pos = S.restoredPos || 0; } else { S.pos = 0; S.segs = []; renderAll(); }
+  S.restoredFile = null;
+  if (S.url) URL.revokeObjectURL(S.url);
+  S.url = URL.createObjectURL(f); $("player").src = S.url;
+  $("fname").textContent = f.name;
+  document.getElementById("workspace").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  $("fmeta").textContent = (f.size/1048576).toFixed(1) + " MB. Reading audio…";
+  stat("Reading the recording…"); bar(0);
+  try {
+    const mono = await decode(f);
+    S.audio = mono;
+    $("fmeta").textContent = `${(f.size/1048576).toFixed(1)} MB, ${clock(mono.length/SR)} long`;
+    $("go").disabled = false;
+    if (S.pos > 0) { $("go").textContent = "Continue"; stat(`Ready to continue from ${clock(S.pos/SR)}.`); }
+    else { $("go").textContent = "Start transcribing"; stat("Ready. Check the language, then press Start."); }
+    header();
+  } catch (e) {
+    console.error(e);
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    $("fmeta").textContent = "This file could not be read.";
+    const known = { wma:"WMA", dss:"DSS dictation", ds2:"DS2 dictation", trm:"FTR court recording", aiff:"AIFF", amr:"AMR", "3gp":"3GP" };
+    stat(known[ext]
+      ? `Chrome cannot open ${known[ext]} files (.${ext}). Convert the recording to MP3 first, then choose the MP3 here.`
+      : `The audio could not be read (${e.message || e}). Convert the recording to MP3 and try again.`);
+  }
+}
+
+/* Decode any browser-readable audio/video to 16 kHz mono.
+   Long MP3s (multi-hour hearings) are decoded in pieces, because Chrome
+   cannot decode a whole 3-hour file in one go. */
+async function decode(f){
+  const isMp3 = /\.mp3$/i.test(f.name) || f.type === "audio/mpeg";
+  if (isMp3 && f.size > 30 * 1048576) return decodeMp3InPieces(f);
+  try { return await decodeWhole(f); }
+  catch (e) { if (isMp3) return decodeMp3InPieces(f); throw e; }
+}
+async function decodeWhole(f){
+  let buf;
+  try {
+    const ctx = new AudioContext({ sampleRate: SR });
+    try { buf = await ctx.decodeAudioData(await f.arrayBuffer()); } finally { ctx.close(); }
+  } catch (first) {
+    console.warn("16 kHz decode failed, retrying", first);
+    const ctx = new AudioContext();
+    let raw;
+    try { raw = await ctx.decodeAudioData(await f.arrayBuffer()); } finally { ctx.close(); }
+    const off = new OfflineAudioContext(1, Math.ceil(raw.duration * SR), SR);
+    const src = off.createBufferSource(); src.buffer = raw; src.connect(off.destination); src.start();
+    buf = await off.startRendering();
+  }
+  return mix(buf);
+}
+function mix(buf){
+  if (buf.numberOfChannels === 1) return buf.getChannelData(0);
+  const out = new Float32Array(buf.length);
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) out[i] += d[i] / buf.numberOfChannels; }
+  return out;
+}
+function mediaDuration(f){
+  return new Promise(res => {
+    const a = new Audio(); const u = URL.createObjectURL(f); let done = false;
+    const fin = v => { if (done) return; done = true; URL.revokeObjectURL(u); res(v); };
+    a.preload = "metadata"; a.onloadedmetadata = () => fin(a.duration); a.onerror = () => fin(NaN);
+    setTimeout(() => fin(NaN), 10000); a.src = u;
+  });
+}
+async function decodeMp3InPieces(f){
+  const head = new Uint8Array(await f.slice(0, 262144).arrayBuffer());
+  let first = 0;
+  if (head[0]===0x49 && head[1]===0x44 && head[2]===0x33) first = 10 + ((head[6]&127)<<21 | (head[7]&127)<<14 | (head[8]&127)<<7 | (head[9]&127));
+  while (first < head.length - 3 && !(head[first]===0xFF && (head[first+1]&0xE0)===0xE0)) first++;
+  const b1 = head[first+1], srBits = head[first+2] & 0x0C;
+  const syncAt = async pos => {
+    if (pos >= f.size) return f.size;
+    const a = new Uint8Array(await f.slice(pos, pos + 65536).arrayBuffer());
+    for (let i = 0; i < a.length - 3; i++) if (a[i]===0xFF && a[i+1]===b1 && (a[i+2]&0x0C)===srBits && (a[i+2]&0xF0)!==0xF0) return pos + i;
+    return pos;
+  };
+  let dur = await mediaDuration(f);
+  if (!isFinite(dur)) dur = f.size / 4000; /* worst case: 32 kbps */
+  let out = new Float32Array(Math.ceil(dur * SR) + SR * 60), n = 0;
+  const ctx = new AudioContext({ sampleRate: SR });
+  const STEP = 6 * 1048576;
+  try {
+    for (let pos = first; pos < f.size; ) {
+      const next = await syncAt(pos + STEP);
+      try {
+        const d = mix(await ctx.decodeAudioData(await f.slice(pos, next).arrayBuffer()));
+        if (n + d.length > out.length) { const g = new Float32Array(Math.ceil((n + d.length) * 1.2)); g.set(out.subarray(0, n)); out = g; }
+        out.set(d, n); n += d.length;
+      } catch (e) { console.warn("Skipped an unreadable part", e); }
+      stat(`Reading the recording… ${Math.round(next / f.size * 100)}%`); bar(next / f.size * 100);
+      pos = next;
+    }
+  } finally { ctx.close(); }
+  if (!n) throw new Error("no audio could be read from this MP3");
+  return out.subarray(0, n);
+}
+
+/* ---------- model ---------- */
+async function getPipe(){
+  const key = q() + (S.gpu ? "-gpu" : "-cpu");
+  if (S.pipe && S.pipeKey === key) return S.pipe;
+  const m = MODELS[q()];
+  const files = {};
+  const progress_callback = p => {
+    if (p.status === "progress" && p.total) {
+      files[p.file] = [p.loaded, p.total];
+      let l = 0, t = 0; for (const [a,b] of Object.values(files)) { l += a; t += b; }
+      bar(l/t*100); stat(`Downloading the speech model (one time only): ${Math.round(l/1048576)} of ${Math.round(t/1048576)} MB`);
+    }
+  };
+  stat("Loading the speech engine…");
+  await tf();
+  stat("Loading the speech model…");
+  const tryLoad = (device) => {
+    const dtype = device === "webgpu"
+      ? { encoder_model: (q()==="turbo" && S.f16) ? "fp16" : "fp32", decoder_model_merged: "q4" }
+      : "q8";
+    return TF.pipeline("automatic-speech-recognition", m.id, { device, dtype, progress_callback });
+  };
+  let p;
+  if (S.gpu) {
+    try { p = await tryLoad("webgpu"); }
+    catch (e) { console.warn("GPU load failed, using processor", e); S.gpu = false; p = await tryLoad("wasm"); }
+  } else p = await tryLoad("wasm");
+  if (S.pipe) { try { await S.pipe.dispose(); } catch {} }
+  S.pipe = p; S.pipeKey = q() + (S.gpu ? "-gpu" : "-cpu");
+  return p;
+}
+
+/* ---------- transcription loop ---------- */
+$("go").addEventListener("click", async () => {
+  if (S.running) { S.stop = true; $("go").textContent = "Stopping after this part…"; $("go").disabled = true; return; }
+  if (!S.audio) return;
+  if (S.pos === 0 && S.segs.length) {
+    if (!confirm("Transcribe the whole recording again? The current transcript will be replaced.")) return;
+    S.segs = []; renderAll();
+  }
+  S.running = true; S.stop = false; lock(true);
+  $("go").textContent = "Stop";
+  try {
+    const asr = await getPipe();
+    const total = S.audio.length, t0 = performance.now(), startPos = S.pos;
+    while (S.pos < total && !S.stop) {
+      const end = cutPoint(S.audio, S.pos);
+      const chunk = S.audio.subarray(S.pos, end);
+      const offset = S.pos / SR, winEnd = end / SR;
+      if (rms(chunk) > 0.003) {
+        const opts = { task: task(), return_timestamps: true };
+        if (lang() !== "auto") opts.language = lang();
+        const out = await asr(chunk, opts);
+        const parts = (out.chunks && out.chunks.length) ? out.chunks : [{ timestamp:[0, null], text: out.text }];
+        for (const c of parts) {
+          const text = (c.text || "").trim();
+          if (!text || junk(text)) continue;
+          const s = offset + (c.timestamp?.[0] ?? 0);
+          const e = c.timestamp?.[1] != null ? offset + c.timestamp[1] : winEnd;
+          addSeg({ start: s, end: Math.min(e, winEnd), speaker: "", text });
+        }
+      }
+      S.pos = end;
+      const done = (S.pos - startPos) / (total - startPos);
+      const el = (performance.now() - t0) / 1000;
+      const left = done > 0.02 ? Math.round(el / done - el) : null;
+      bar(S.pos / total * 100);
+      stat(`Transcribed ${clock(S.pos/SR)} of ${clock(total/SR)}` + (left != null ? `. About ${mins(left)} left.` : "."));
+      save();
+    }
+    if (S.pos >= total) { stat(`Finished. ${S.segs.length} lines. Review, add speakers, then export.`); bar(100); $("go").textContent = "Transcribe again"; S.pos = 0; }
+    else { stat(`Stopped at ${clock(S.pos/SR)}. Press Continue to carry on from there.`); $("go").textContent = "Continue"; }
+  } catch (e) {
+    console.error(e);
+    stat("Transcription stopped because of an error: " + (e.message || e) + ". Try the Fast quality setting, or close other browser tabs and try again.");
+    $("go").textContent = S.pos ? "Continue" : "Start transcribing";
+  } finally {
+    S.running = false; lock(false); $("go").disabled = false;
+  }
+});
+function lock(on){ document.querySelectorAll("input[name=q],input[name=lang],input[name=task],#file").forEach(i => i.disabled = on); }
+
+/* Cut each window at the quietest moment between 20 and 30 seconds so words are not split. */
+function cutPoint(a, from){
+  const max = from + 30*SR;
+  if (max >= a.length) return a.length;
+  const lo = from + 20*SR, step = SR/10;
+  let best = max, bestE = Infinity;
+  for (let i = lo; i + step <= max; i += step) {
+    let e = 0; for (let j = i; j < i + step; j += 4) e += a[j]*a[j];
+    if (e < bestE) { bestE = e; best = i + step/2; }
+  }
+  return Math.floor(best);
+}
+function rms(a){ let s = 0; for (let i = 0; i < a.length; i += 8) s += a[i]*a[i]; return Math.sqrt(s / (a.length/8)); }
+const JUNK = /^(\[.*\]|\(.*\)|thank you\.?|thanks for watching!?|you|\.+|♪+)$/i;
+function junk(t){ return JUNK.test(t.trim()); }
+
+/* ---------- transcript UI ---------- */
+const URDU = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
+function addSeg(seg){ S.segs.push(seg); $("rows").appendChild(rowEl(seg)); $("empty")?.remove(); tools(); }
+function rowEl(seg){
+  const r = document.createElement("div"); r.className = "row";
+  const ts = document.createElement("button"); ts.className = "ts"; ts.textContent = clock(seg.start);
+  ts.title = "Play from here"; ts.onclick = () => { const p = $("player"); p.currentTime = seg.start; p.play(); };
+  const b = document.createElement("div"); b.className = "body";
+  const sp = document.createElement("input"); sp.className = "spk"; sp.setAttribute("list","speakers"); sp.placeholder = "Add speaker"; sp.value = seg.speaker;
+  sp.setAttribute("aria-label", "Speaker at " + clock(seg.start));
+  sp.oninput = () => { seg.speaker = sp.value; save(); };
+  const tx = document.createElement("div"); tx.className = "txt"; tx.contentEditable = "true"; tx.dir = "auto"; tx.spellcheck = true;
+  tx.textContent = seg.text; if (URDU.test(seg.text)) tx.classList.add("ur");
+  tx.oninput = () => { seg.text = tx.innerText; tx.classList.toggle("ur", URDU.test(seg.text)); save(); };
+  b.append(sp, tx); r.append(ts, b); seg.el = r; return r;
+}
+function renderAll(){
+  const rows = $("rows"); rows.innerHTML = "";
+  if (!S.segs.length) { rows.innerHTML = `<p class="empty" id="empty">Your transcript appears here, line by line, while the recording is processed. Click a time to replay that moment, add a speaker to any line, and edit the text directly.</p>`; }
+  else S.segs.forEach(s => rows.appendChild(rowEl(s)));
+  tools();
+}
+function tools(){ const has = S.segs.length > 0; ["exDoc","exTxt","exSrt","copy","clear"].forEach(id => $(id).disabled = !has); }
+
+let cur = null;
+$("player").addEventListener("timeupdate", () => {
+  const t = $("player").currentTime;
+  const s = S.segs.find(x => t >= x.start && t < x.end);
+  if (s !== cur) { cur?.el?.classList.remove("now"); s?.el?.classList.add("now"); cur = s; }
+});
+
+/* ---------- export ---------- */
+function meta(){
+  return { c: $("case").value.trim(), n: $("fileno").value.trim(), d: $("hdate").value ? fmtDate($("hdate").value) : "", f: S.file?.name || "" };
+}
+function plain(){
+  const m = meta(), L = [];
+  L.push(m.c || "Transcript of proceedings");
+  if (m.n) L.push("Court file: " + m.n);
+  if (m.d) L.push("Hearing date: " + m.d);
+  if (m.f) L.push("Recording: " + m.f);
+  L.push("Machine-generated transcript. Verify against the recording.", "");
+  for (const s of S.segs) L.push(`[${clock(s.start)}] ${s.speaker ? s.speaker.toUpperCase() + ": " : ""}${s.text}`);
+  return L.join("\n");
+}
+function esc(t){ return t.replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+function base(){ const m = meta(); return (m.n || m.c || S.file?.name?.replace(/\.[^.]+$/,"") || "transcript").replace(/[^\w\- ]+/g,"").trim() + " - transcript"; }
+function dl(name, data, type){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+
+$("exTxt").onclick = () => dl(base() + ".txt", "\ufeff" + plain(), "text/plain;charset=utf-8");
+$("exSrt").onclick = () => {
+  const s = S.segs.map((x,i) => `${i+1}\n${srt(x.start)} --> ${srt(Math.max(x.end, x.start+0.5))}\n${x.speaker ? x.speaker + ": " : ""}${x.text}\n`).join("\n");
+  dl(base() + ".srt", "\ufeff" + s, "text/plain;charset=utf-8");
+};
+$("exDoc").onclick = () => {
+  const m = meta();
+  const rows = S.segs.map(s => {
+    const ur = URDU.test(s.text);
+    return `<p class="ln"><span class="t">[${clock(s.start)}]</span>&nbsp; ${s.speaker ? `<b>${esc(s.speaker.toUpperCase())}:</b> ` : ""}<span${ur ? ' dir="rtl" class="ur"' : ""}>${esc(s.text)}</span></p>`;
+  }).join("");
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(m.c || "Transcript")}</title>
+<style>body{font-family:Calibri,sans-serif;font-size:11pt}h1{font-size:14pt;margin:0 0 4pt}p.m{margin:0;color:#444}p.w{font-style:italic;color:#666;margin:8pt 0 14pt}p.ln{margin:0 0 6pt;line-height:150%}.t{color:#666}.ur{font-family:'Jameel Noori Nastaleeq','Noto Nastaliq Urdu',serif;font-size:13pt}</style></head><body>
+<h1>${esc(m.c || "Transcript of proceedings")}</h1>
+${m.n ? `<p class="m">Court file: ${esc(m.n)}</p>` : ""}${m.d ? `<p class="m">Hearing date: ${esc(m.d)}</p>` : ""}${m.f ? `<p class="m">Recording: ${esc(m.f)}</p>` : ""}
+<p class="w">Machine-generated transcript. Verify against the recording before use.</p>${rows}</body></html>`;
+  dl(base() + ".doc", "\ufeff" + html, "application/msword");
+};
+$("copy").onclick = async () => { try { await navigator.clipboard.writeText(plain()); stat("Transcript copied."); } catch { stat("Copying was blocked by the browser. Use the Text export instead."); } };
+$("clear").onclick = () => { if (S.running) return; if (!confirm("Clear the whole transcript? This cannot be undone.")) return; S.segs = []; S.pos = 0; renderAll(); save(); if (S.audio) $("go").textContent = "Start transcribing"; stat("Transcript cleared."); };
+
+/* ---------- autosave ---------- */
+function save(){
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      case: $("case").value, fileno: $("fileno").value, hdate: $("hdate").value, file: S.file?.name || null, pos: S.pos,
+      segs: S.segs.map(({start,end,speaker,text}) => ({start,end,speaker,text}))
+    }));
+  } catch {}
+}
+(function restore(){
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!d) return;
+    $("case").value = d.case || ""; $("fileno").value = d.fileno || ""; $("hdate").value = d.hdate || "";
+    if (d.segs?.length) {
+      S.segs = d.segs; renderAll();
+      stat(`Your last transcript${d.file ? " of " + d.file : ""} was restored. To replay or continue it, choose the same recording again.`);
+      S.restoredPos = d.pos || 0; S.restoredFile = d.file;
+    }
+    header();
+  } catch {}
+})();
+/* ---------- helpers ---------- */
+function stat(t){ $("stat").textContent = t; }
+function bar(p){ $("barfill").style.width = Math.max(0, Math.min(100, p)) + "%"; }
+function clock(s){ s = Math.max(0, Math.floor(s)); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`; }
+function srt(s){ const ms = Math.round((s % 1) * 1000); return clock(s) + "," + String(ms).padStart(3,"0"); }
+function mins(s){ return s < 90 ? `${s} seconds` : `${Math.round(s/60)} minutes`; }
+</script>
+</body>
+</html>
