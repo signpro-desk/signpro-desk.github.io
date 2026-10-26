@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SignPro Desk</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230B5CFF'/><path d='M6 21c4-1 5-8 8-8s1 7 4 7 3-4 5-4 2 3 4 3' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round'/></svg>">
+<style>
+html,body{margin:0;height:100%;font:16px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;background:#F4F6FA;color:#00053D}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+.gate{max-width:380px;margin:14vh auto 0;background:#fff;border:1px solid #E4E7EE;border-radius:18px;padding:30px;box-shadow:0 10px 40px rgba(0,5,61,.08)}
+.gate h1{margin:0 0 6px;font-size:26px;letter-spacing:-.02em}
+.gate p{margin:0 0 18px;color:#4A5068}
+input{width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #E4E7EE;border-radius:12px;font:inherit}
+input:focus{outline:none;border-color:#0B5CFF}
+button{width:100%;margin-top:12px;padding:12px;border:0;border-radius:999px;background:#0B5CFF;color:#fff;font-weight:700;font-size:16px;cursor:pointer}
+button:hover{background:#0846CC}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="gate" id="gate" hidden>
+  <h1>SignPro Desk</h1>
+  <p>Enter your team code to open the workspace. You only need to do this once on each computer.</p>
+  <form id="f"><input id="code" autocomplete="off" placeholder="Team code" aria-label="Team code" required><button type="submit">Open workspace</button></form>
+</div>
+<script>
+var APP = 'https://script.google.com/macros/s/AKfycbxj2Bfv_gk3QHHBi5acmkW3J7vrJauTdwA44qPcPhAr9gC3XPYf7hbhAQDmtQniu7fGsg/exec';
+var KEY = 'signpro-team-code';
+var q = new URLSearchParams(location.search);
+function show(src){ var f = document.createElement('iframe'); f.src = src; f.title = 'SignPro Desk'; f.allow = 'clipboard-write'; document.body.appendChild(f); }
+function get(){ try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+function put(v){ try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) {} }
+if (q.get('r') && q.get('t')) {
+  show(APP + '?r=' + encodeURIComponent(q.get('r')) + '&t=' + encodeURIComponent(q.get('t')));
+} else {
+  if (q.has('reset')) put(null);
+  if (q.get('k')) put(q.get('k').trim());
+  if (q.has('k') || q.has('reset')) history.replaceState(null, '', location.pathname);
+  var k = get();
+  if (k) show(APP + '?k=' + encodeURIComponent(k));
+  else {
+    document.getElementById('gate').hidden = false;
+    document.getElementById('f').onsubmit = function(e){ e.preventDefault(); var v = document.getElementById('code').value.trim(); if (!v) return; put(v); document.getElementById('gate').hidden = true; show(APP + '?k=' + encodeURIComponent(v)); };
+  }
+}
+</script>
+</body>
+</html>
