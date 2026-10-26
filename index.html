@@ -29,7 +29,7 @@ button:hover{background:#0846CC}
 var APP = 'https://script.google.com/macros/s/AKfycbxj2Bfv_gk3QHHBi5acmkW3J7vrJauTdwA44qPcPhAr9gC3XPYf7hbhAQDmtQniu7fGsg/exec';
 var KEY = 'signpro-team-code';
 var q = new URLSearchParams(location.search);
-function show(src){ var f = document.createElement('iframe'); f.src = src; f.title = 'SignPro Desk'; f.allow = 'clipboard-write'; document.body.appendChild(f); }
+function show(src){ var f = document.createElement('iframe'); f.setAttribute('credentialless', ''); f.src = src; f.title = 'SignPro Desk'; f.allow = 'clipboard-write'; document.body.appendChild(f); }
 function get(){ try { return localStorage.getItem(KEY); } catch (e) { return null; } }
 function put(v){ try { if (v) localStorage.setItem(KEY, v); else localStorage.removeItem(KEY); } catch (e) {} }
 if (q.get('r') && q.get('t')) {
